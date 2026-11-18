@@ -1,0 +1,57 @@
+name: Task Manager CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: |
+          npm install --global pnpm@11.25.0
+          pnpm --dir frontend install --frozen-lockfile
+          python -m pip install -r requirements-test.txt
+      - name: Build frontend
+        run: pnpm --dir frontend build
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Run API and browser tests
+        run: |
+          python -m pytest --junitxml=test-results/pytest.xml \
+            --output=test-results/playwright --tracing=retain-on-failure
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+      - name: Package application
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        run: |
+          tar -czf task-manager.tar.gz README.md requirements.txt \
+            backend/__init__.py backend/main.py frontend/dist
+      - name: Upload application package
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-manager
+          path: task-manager.tar.gz
+          if-no-files-found: error

@@ -54,3 +54,14 @@ python -m pytest tests/test_api.py
 python -m pytest tests/test_e2e.py
 pnpm --dir frontend build
 ```
+
+## GitHub Actions
+
+[Task Manager CI](.github/workflows/ci.yml) runs on GitHub-hosted runners for
+pushes to `master` and pull requests targeting `master`. You can also start it
+from the repository's **Actions** tab once the workflow is on the default branch.
+
+Open a workflow run to download the test report and any traces from failed
+browser tests. A successful push or manual run on `master` also publishes the
+`task-manager` artifact, which contains `task-manager.tar.gz`. The workflow
+delivers the archive through GitHub Actions. Deploying it requires a target host.
